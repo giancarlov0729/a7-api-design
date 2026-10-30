@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: Movie Theater Seat Reservation API
+  version: 1.0.0
+  description: >-
+    Allows customers to view available seats for a movie showing, temporarily
+    reserve a seat during checkout, and release a reservation if they cancel.
+    Reservations are scoped to a specific showing and expire after 10 minutes
+    if not purchased.
+servers:
+  - url: https://api.example-cinema.com/v1
+    description: Illustrative theater server; not a deployed endpoint
+paths:
+  /showings/{showingId}/seats:
+    get:
+      summary: List seats and availability for a showing
+      parameters:
+        - name: showingId
+          in: path
+          required: true
+          description: Unique movie showing identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Seat map returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  showingId:
+                    type: string
+                  seats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        seatId:
+                          type: string
+                        status:
+                          type: string
+                          enum: [available, held, sold]
+        '404':
+          description: Showing not found
+  /showings/{showingId}/reservations:
+    post:
+      summary: Hold a seat for checkout
+      parameters:
+        - name: showingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [seatId, customerId]
+              properties:
+                seatId:
+                  type: string
+                  example: C7
+                customerId:
+                  type: string
+                  example: cust_42
+      responses:
+        '201':
+          description: Seat held successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservationId:
+                    type: string
+                  seatId:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '404':
+          description: Showing or seat not found
+        '409':
+          description: Seat already held or sold
+  /reservations/{reservationId}:
+    delete:
+      summary: Cancel a seat hold and release the seat
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Reservation canceled; no response body
+        '404':
+          description: Reservation not found
+        '409':
+          description: Reservation already completed and cannot be canceled
